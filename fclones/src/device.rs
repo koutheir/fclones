@@ -6,7 +6,7 @@ use std::ops::Index;
 use itertools::Itertools;
 use lazy_init::Lazy;
 use rayon::{ThreadPool, ThreadPoolBuilder};
-use sysinfo::{DiskExt, DiskKind, System, SystemExt};
+use sysinfo::{DiskKind, Disks};
 
 use crate::config::Parallelism;
 use crate::file::FileLen;
@@ -226,8 +226,8 @@ impl DiskDevices {
     /// Reads the list of partitions and disks from the system and builds the `DiskDevices`
     /// structure from that information.
     pub fn new(pool_sizes: &HashMap<OsString, Parallelism>) -> DiskDevices {
-        let mut sys = System::new();
-        sys.refresh_disks_list();
+        let mut disks = Disks::new();
+        disks.refresh(true);
         let mut result = DiskDevices {
             devices: Vec::new(),
             mount_points: Vec::new(),
@@ -240,12 +240,12 @@ impl DiskDevices {
             String::from("unknown"),
             pool_sizes,
         );
-        for d in sys.disks() {
+        for d in &disks {
             let device_name = Self::physical_device_name(d.name());
             let index = result.add_device(
                 device_name,
                 d.kind(),
-                String::from_utf8_lossy(d.file_system()).to_string(),
+                d.file_system().to_string_lossy().into_owned(),
                 pool_sizes,
             );
 
@@ -255,7 +255,7 @@ impl DiskDevices {
             // https://www.swiftforensics.com/2019/10/macos-1015-volumes-firmlink-magic.html
             // https://eclecticlight.co/2020/01/23/catalina-boot-volumes/
             if cfg!(target_os = "macos")
-                && d.file_system() == b"apfs"
+                && d.file_system() == "apfs"
                 && d.mount_point().to_str() == Some("/System/Volumes/Data")
             {
                 result.mount_points.push((Path::from("/"), index));

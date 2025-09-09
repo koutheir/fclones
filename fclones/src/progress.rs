@@ -228,7 +228,10 @@ mod test {
             ..Default::default()
         };
 
-        assert_eq!(p.to_string(), "Message                         [                                                  ]       12.0 KB / 1000.0 MB");
+        assert_eq!(
+            p.to_string(),
+            "Message                         [                                                  ]       12.0 kB / 1.0 GB"
+        );
     }
 
     #[test]

@@ -14,8 +14,7 @@ use nom::character::complete::{none_of, one_of};
 use nom::combinator::map;
 use nom::error::{ErrorKind, ParseError};
 use nom::multi::{many1, separated_list0};
-use nom::sequence::tuple;
-use nom::IResult;
+use nom::{IResult, Parser};
 use regex::Regex;
 use uuid::Uuid;
 
@@ -429,13 +428,11 @@ where
     }
 
     let r_var = Regex::new(r"^([[:alnum:]]|_)+").unwrap();
-    let p_var = map(tuple((tag("$"), re_find(r_var))), |(_, str)| {
-        (substitute)(str)
-    });
+    let p_var = map((tag("$"), re_find(r_var)), |(_, str)| (substitute)(str));
     let p_non_var = map(many1(none_of(" $")), join_chars);
     let p_arg = map(many1(alt((p_var, p_non_var))), join_str);
     let p_whitespace = many1(one_of(" \t"));
-    let p_args = |s| separated_list0(p_whitespace, p_arg)(s);
+    let p_args = |s| separated_list0(p_whitespace, p_arg).parse(s);
     let result: IResult<&str, Vec<OsString>> = (p_args)(command);
     result.expect("Parse error").1
 }

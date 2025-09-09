@@ -164,17 +164,17 @@ impl Sum<FileLen> for FileLen {
 }
 
 impl FromStr for FileLen {
-    type Err = byte_unit::ByteError;
+    type Err = byte_unit::ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let b = Byte::from_str(s)?;
-        Ok(FileLen(b.get_bytes() as u64))
+        Ok(FileLen(b.as_u64()))
     }
 }
 
 impl Display for FileLen {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.pad(format!("{}", ByteSize(self.0)).as_str())
+        f.pad(format!("{}", ByteSize(self.0).display().si()).as_str())
     }
 }
 
@@ -579,6 +579,6 @@ mod test {
     fn test_format_bytes() {
         let file_len = FileLen(16000);
         let human_readable = format!("{file_len}");
-        assert_eq!(human_readable, "16.0 KB");
+        assert_eq!(human_readable, "16.0 kB");
     }
 }

@@ -629,7 +629,7 @@ where
 
                 // Run hashing on the thread-pool dedicated to the device.
                 // Group files by their identifiers so we hash only one file per unique id.
-                for (_, fg) in &files.into_iter().group_by(|f| f.file_info.id) {
+                for (_, fg) in &files.into_iter().chunk_by(|f| f.file_info.id) {
                     let mut fg = fg.collect_vec();
                     let tx = tx.clone();
                     let guard = semaphore.clone().access_owned();
@@ -1592,7 +1592,7 @@ mod test {
                 }],
             })
         }
-        input.shuffle(&mut rand::thread_rng());
+        input.shuffle(&mut rand::rng());
 
         let processing_order = Mutex::new(Vec::new());
         rehash(

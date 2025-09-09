@@ -13,7 +13,7 @@ use std::{fmt, fs, io};
 
 use chrono::{DateTime, FixedOffset, Local};
 use priority_queue::PriorityQueue;
-use rand::distributions::Alphanumeric;
+use rand::distr::Alphanumeric;
 use rand::Rng;
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 
@@ -260,7 +260,7 @@ impl FsCommand {
             .expect("must be a regular file with a name");
         name.push(".");
         name.push(
-            rand::thread_rng()
+            rand::rng()
                 .sample_iter(&Alphanumeric)
                 .take(24)
                 .map(char::from)

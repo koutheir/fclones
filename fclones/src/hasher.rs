@@ -464,15 +464,9 @@ fn to_off_t(offset: u64) -> libc::off_t {
 /// Wrapper for `posix_fadvise`. Ignores errors.
 /// This method is used to advise the system, so its failure is not critical to the result of
 /// the program. At worst, failure could hurt performance.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
 fn fadvise(file: &File, offset: FilePos, len: FileLen, advice: nix::fcntl::PosixFadviseAdvice) {
-    use std::os::unix::io::AsRawFd;
-    let _ = nix::fcntl::posix_fadvise(
-        file.as_raw_fd(),
-        to_off_t(offset.into()),
-        to_off_t(len.into()),
-        advice,
-    );
+    let _ = nix::fcntl::posix_fadvise(file, to_off_t(offset.into()), to_off_t(len.into()), advice);
 }
 
 /// Optimizes file read performance based on how many bytes we are planning to read.
@@ -511,7 +505,7 @@ fn evict_page_cache(file: &File, offset: FilePos, len: FileLen) {
 fn evict_page_cache_if_low_mem(file: &mut File, len: FileLen) {
     #[cfg(target_os = "linux")]
     {
-        use sysinfo::{System, SystemExt};
+        use sysinfo::System;
 
         let skipped_prefix_len = FileLen(256 * 1024);
         if len > skipped_prefix_len {
@@ -581,7 +575,7 @@ fn scan<F: FnMut(&[u8])>(
         let new_len = max(buf.len(), buf_len);
         buf.resize(new_len, 0);
         let mut read: u64 = 0;
-        let len = len.into();
+        let len = u64::from(len);
         while read < len {
             let remaining = len - read;
             let to_read = min(remaining, buf.len() as u64) as usize;

@@ -34,11 +34,11 @@ impl FileLock {
     #[allow(clippy::unnecessary_cast)]
     fn fcntl_lock(file: &File) -> io::Result<()> {
         use nix::fcntl::*;
-        use std::os::unix::io::AsRawFd;
+
         let mut f = Self::new_flock();
         f.l_type = libc::F_WRLCK as i16;
         f.l_whence = libc::SEEK_SET as i16;
-        let result = nix::fcntl::fcntl(file.as_raw_fd(), FcntlArg::F_SETLK(&f));
+        let result = nix::fcntl::fcntl(file, FcntlArg::F_SETLK(&f));
         Self::nix_as_io_error(result).map(|_| {})
     }
 
@@ -46,11 +46,11 @@ impl FileLock {
     #[allow(clippy::unnecessary_cast)]
     fn fcntl_unlock(file: &File) -> io::Result<()> {
         use nix::fcntl::*;
-        use std::os::unix::io::AsRawFd;
+
         let mut f = Self::new_flock();
         f.l_type = libc::F_UNLCK as i16;
         f.l_whence = libc::SEEK_SET as i16;
-        let result = nix::fcntl::fcntl(file.as_raw_fd(), FcntlArg::F_SETLK(&f));
+        let result = nix::fcntl::fcntl(file, FcntlArg::F_SETLK(&f));
         Self::nix_as_io_error(result).map(|_| {})
     }
 
