@@ -14,6 +14,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+use crate::TIMESTAMP_FMT;
 use crate::arg;
 use crate::arg::Arg;
 use crate::config::OutputFormat;
@@ -21,7 +22,6 @@ use crate::file::{FileHash, FileLen};
 use crate::group::FileGroup;
 use crate::path::Path;
 use crate::util::IteratorWrapper;
-use crate::TIMESTAMP_FMT;
 
 /// Describes how many redundant files were found, in how many groups,
 /// how much space can be reclaimed, etc.
@@ -163,7 +163,7 @@ impl<W: Write> ReportWriter<W> {
             );
             let group_header = style(group_header).yellow();
             writeln!(self.out, "{}", group_header.force_styling(self.color),)?;
-            for f in g.files.iter() {
+            for f in &g.files {
                 writeln!(self.out, "    {}", f.as_ref().to_escaped_string())?;
             }
         }
@@ -181,7 +181,7 @@ impl<W: Write> ReportWriter<W> {
     {
         for g in groups {
             let g = g.as_ref();
-            for f in g.files.iter() {
+            for f in &g.files {
                 writeln!(self.out, "{}", f.as_ref().to_escaped_string())?;
             }
             writeln!(self.out)?;
@@ -217,7 +217,7 @@ impl<W: Write> ReportWriter<W> {
             record.push_field(g.file_len.0.to_string().as_str());
             record.push_field(g.file_hash.to_string().as_str());
             record.push_field(g.files.len().to_string().as_str());
-            for f in g.files.iter() {
+            for f in &g.files {
                 record.push_field(f.as_ref().to_escaped_string().as_ref());
             }
             wtr.write_record(&record)?;
@@ -320,7 +320,7 @@ pub type GroupIterator = dyn FallibleIterator<Item = FileGroup<Path>, Error = io
 /// Reads a report from a stream.
 pub trait ReportReader {
     /// Reads the header. Must be called exactly once before reading the groups.
-    /// Reports an io::Error with ErrorKind::InvalidData
+    /// Reports an `io::Error` with `ErrorKind::InvalidData`
     /// if the report header is malformed.
     fn read_header(&mut self) -> io::Result<ReportHeader>;
 
@@ -372,15 +372,14 @@ where
     }
 
     fn read_group_header(&mut self) -> io::Result<Option<GroupHeader>> {
-        let header_str = match self.read_first_non_comment_line()? {
-            None => return Ok(None),
-            Some(s) => s,
-        };
-
         lazy_static! {
             static ref GROUP_HEADER_RE: Regex =
                 Regex::new(r"^([a-f0-9]+), ([0-9]+) B [^*]* \* ([0-9]+):").unwrap();
         }
+
+        let Some(header_str) = self.read_first_non_comment_line()? else {
+            return Ok(None);
+        };
 
         let captures = GROUP_HEADER_RE.captures(header_str).ok_or_else(|| {
             Error::new(
@@ -718,7 +717,7 @@ mod test {
         assert_eq!(header2.stats, header1.stats);
     }
 
-    fn roundtrip_groups_text(header: &ReportHeader, groups: Vec<FileGroup<Path>>) {
+    fn roundtrip_groups_text(header: &ReportHeader, groups: &[FileGroup<Path>]) {
         let output = NamedTempFile::new().unwrap();
         let input = output.reopen().unwrap();
 
@@ -737,17 +736,17 @@ mod test {
         let groups = vec![
             FileGroup {
                 file_len: FileLen(100),
-                file_hash: FileHash::from(0x00112233445566778899aabbccddeeff),
+                file_hash: FileHash::from(0x0011_2233_4455_6677_8899_aabb_ccdd_eeff),
                 files: vec![Path::from("a"), Path::from("b")],
             },
             FileGroup {
                 file_len: FileLen(40),
-                file_hash: FileHash::from(0x0000000000000555555555ffffffffff),
+                file_hash: FileHash::from(0x0000_0000_0000_0555_5555_55ff_ffff_ffff),
                 files: vec![Path::from("c"), Path::from("d")],
             },
         ];
 
-        roundtrip_groups_text(&header, groups);
+        roundtrip_groups_text(&header, &groups);
     }
 
     #[test]
@@ -756,17 +755,17 @@ mod test {
         let groups = vec![
             FileGroup {
                 file_len: FileLen(100),
-                file_hash: FileHash::from(0x00112233445566778899aabbccddeeff),
+                file_hash: FileHash::from(0x0011_2233_4455_6677_8899_aabb_ccdd_eeff),
                 files: vec![Path::from("\t\r\n/foo"), Path::from("ąę/ść/żź/óń/")],
             },
             FileGroup {
                 file_len: FileLen(40),
-                file_hash: FileHash::from(0x0000000000000555555555ffffffffff),
+                file_hash: FileHash::from(0x0000_0000_0000_0555_5555_55ff_ffff_ffff),
                 files: vec![Path::from("c\u{7f}"), Path::from("😀/😋")],
             },
         ];
 
-        roundtrip_groups_text(&header, groups);
+        roundtrip_groups_text(&header, &groups);
     }
 
     #[cfg(unix)]
@@ -776,13 +775,13 @@ mod test {
         let header = dummy_report_header();
         let groups = vec![FileGroup {
             file_len: FileLen(100),
-            file_hash: FileHash::from(0x00112233445566778899aabbccddeeff),
+            file_hash: FileHash::from(0x0011_2233_4455_6677_8899_aabb_ccdd_eeff),
             files: vec![Path::from(OsString::from_vec(vec![
                 0xED, 0xA0, 0xBD, 0xED, 0xB8, 0x8D,
             ]))],
         }];
 
-        roundtrip_groups_text(&header, groups);
+        roundtrip_groups_text(&header, &groups);
     }
 
     #[test]
@@ -851,7 +850,7 @@ mod test {
         assert_eq!(header2.stats, header1.stats);
     }
 
-    fn roundtrip_groups_json(header: &ReportHeader, groups: Vec<FileGroup<Path>>) {
+    fn roundtrip_groups_json(header: &ReportHeader, groups: &[FileGroup<Path>]) {
         let output = NamedTempFile::new().unwrap();
         let input = output.reopen().unwrap();
 
@@ -870,17 +869,17 @@ mod test {
         let groups = vec![
             FileGroup {
                 file_len: FileLen(100),
-                file_hash: FileHash::from(0x00112233445566778899aabbccddeeff),
+                file_hash: FileHash::from(0x0011_2233_4455_6677_8899_aabb_ccdd_eeff),
                 files: vec![Path::from("a"), Path::from("b")],
             },
             FileGroup {
                 file_len: FileLen(40),
-                file_hash: FileHash::from(0x0000000000000555555555ffffffffff),
+                file_hash: FileHash::from(0x0000_0000_0000_0555_5555_55ff_ffff_ffff),
                 files: vec![Path::from("c"), Path::from("d")],
             },
         ];
 
-        roundtrip_groups_json(&header, groups);
+        roundtrip_groups_json(&header, &groups);
     }
 
     #[test]
@@ -889,17 +888,17 @@ mod test {
         let groups = vec![
             FileGroup {
                 file_len: FileLen(100),
-                file_hash: FileHash::from(0x00112233445566778899aabbccddeeff),
+                file_hash: FileHash::from(0x0011_2233_4455_6677_8899_aabb_ccdd_eeff),
                 files: vec![Path::from("\t\r\n/foo"), Path::from("ąę/ść/żź/óń/")],
             },
             FileGroup {
                 file_len: FileLen(40),
-                file_hash: FileHash::from(0x0000000000000555555555ffffffffff),
+                file_hash: FileHash::from(0x0000_0000_0000_0555_5555_55ff_ffff_ffff),
                 files: vec![Path::from("c\u{7f}"), Path::from("😀/😋")],
             },
         ];
 
-        roundtrip_groups_json(&header, groups);
+        roundtrip_groups_json(&header, &groups);
     }
 
     #[cfg(unix)]
@@ -909,13 +908,13 @@ mod test {
         let header = dummy_report_header();
         let groups = vec![FileGroup {
             file_len: FileLen(100),
-            file_hash: FileHash::from(0x00112233445566778899aabbccddeeff),
+            file_hash: FileHash::from(0x0011_2233_4455_6677_8899_aabb_ccdd_eeff),
             files: vec![Path::from(OsString::from_vec(vec![
                 0xED, 0xA0, 0xBD, 0xED, 0xB8, 0x8D,
             ]))],
         }];
 
-        roundtrip_groups_json(&header, groups);
+        roundtrip_groups_json(&header, &groups);
     }
 
     fn roundtrip_header(header: &ReportHeader, format: OutputFormat) -> ReportHeader {

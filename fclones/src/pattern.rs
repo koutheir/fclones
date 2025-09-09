@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::ops::Add;
-use std::path::{Path, MAIN_SEPARATOR};
+use std::path::{MAIN_SEPARATOR, Path};
 
 use nom::branch::alt;
 use nom::bytes::complete::tag;
@@ -62,7 +62,7 @@ impl PatternOpts {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Scope {
     TopLevel,
     CurlyBrackets,
@@ -171,14 +171,14 @@ impl Pattern {
 
     /// Parses a UNIX glob and converts it to a regular expression
     fn glob_to_regex(scope: Scope, glob: &str) -> IResult<&str, String> {
+        fn mk_string(contents: &[String], prefix: &str, sep: &str, suffix: &str) -> String {
+            format!("{prefix}{}{suffix}", contents.join(sep))
+        }
+
         // pass escaped characters as-is:
         let p_escaped = map((tag(PATH_ESCAPE_CHAR), anychar), |(_, c)| {
             escape(c.to_string().as_str())
         });
-
-        fn mk_string(contents: Vec<String>, prefix: &str, sep: &str, suffix: &str) -> String {
-            format!("{}{}{}", prefix, contents.join(sep), suffix)
-        }
 
         // { glob1, glob2, ..., globN } -> ( regex1, regex2, ..., regexN )
         let p_alt = map(
@@ -187,7 +187,7 @@ impl Pattern {
                 separated_list0(tag(","), |g| Self::glob_to_regex(Scope::CurlyBrackets, g)),
                 tag("}"),
             ),
-            |(_, list, _)| mk_string(list, "(", "|", ")"),
+            |(_, list, _)| mk_string(&list, "(", "|", ")"),
         );
 
         let p_ext_glob = |s| {
@@ -203,17 +203,19 @@ impl Pattern {
         };
 
         let p_ext_optional = map((tag("?"), p_ext_glob), |(_, g)| {
-            mk_string(g, "(", "|", ")?")
+            mk_string(&g, "(", "|", ")?")
         });
         let p_ext_many = map((tag("*"), p_ext_glob), |(_, g)| {
-            mk_string(g, "(", "|", ")*")
+            mk_string(&g, "(", "|", ")*")
         });
         let p_ext_at_least_once = map((tag("+"), p_ext_glob), |(_, g)| {
-            mk_string(g, "(", "|", ")+")
+            mk_string(&g, "(", "|", ")+")
         });
-        let p_ext_exactly_once = map((tag("@"), p_ext_glob), |(_, g)| mk_string(g, "(", "|", ")"));
+        let p_ext_exactly_once = map((tag("@"), p_ext_glob), |(_, g)| {
+            mk_string(&g, "(", "|", ")")
+        });
         let p_ext_never = map((tag("!"), p_ext_glob), |(_, g)| {
-            mk_string(g, "(?!", "|", ")")
+            mk_string(&g, "(?!", "|", ")")
         });
 
         // ** -> .*
@@ -391,7 +393,7 @@ mod test {
         assert_eq!(
             Pattern::literal("test*?{}\\").to_string(),
             "test\\*\\?\\{\\}\\\\"
-        )
+        );
     }
 
     #[test]
@@ -407,7 +409,7 @@ mod test {
         assert_eq!(
             (Pattern::literal("/foo/bar/") + Pattern::glob("*").unwrap()).to_string(),
             Pattern::glob("/foo/bar/*").unwrap().to_string()
-        )
+        );
     }
 
     #[test]

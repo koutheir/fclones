@@ -14,7 +14,7 @@ fn rlimit_nofile() -> libc::rlim_t {
         rlim_max: 0,
     };
     unsafe {
-        if libc::getrlimit(libc::RLIMIT_NOFILE, &mut file_limit) != 0 {
+        if libc::getrlimit(libc::RLIMIT_NOFILE, &raw mut file_limit) != 0 {
             return 200;
         }
     }
@@ -23,7 +23,7 @@ fn rlimit_nofile() -> libc::rlim_t {
         let prev = file_limit.rlim_cur;
         file_limit.rlim_cur = file_limit.rlim_max;
         unsafe {
-            if libc::setrlimit(libc::RLIMIT_NOFILE, &file_limit) == 0 {
+            if libc::setrlimit(libc::RLIMIT_NOFILE, &raw const file_limit) == 0 {
                 file_limit.rlim_max
             } else {
                 prev

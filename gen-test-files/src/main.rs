@@ -20,7 +20,7 @@ struct CmdOptions {
 
 fn main() {
     let options = CmdOptions::parse();
-    let mut buf = [0u8; 65538];
+    let mut buf = vec![0u8; 65538];
     for i in 0..options.count {
         let group_size: usize = rand::rng().random_range(1..options.max_group_size);
         rand::rng().fill_bytes(&mut buf);

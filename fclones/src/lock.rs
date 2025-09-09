@@ -23,7 +23,7 @@ impl FileLock {
         }
     }
 
-    /// Creates a libc::flock initialized to zeros.
+    /// Creates a `libc::flock` initialized to zeros.
     /// Should be safe, because flock contains primitive fields only, no references.
     #[cfg(unix)]
     fn new_flock() -> libc::flock {
@@ -33,7 +33,7 @@ impl FileLock {
     #[cfg(unix)]
     #[allow(clippy::unnecessary_cast)]
     fn fcntl_lock(file: &File) -> io::Result<()> {
-        use nix::fcntl::*;
+        use nix::fcntl::FcntlArg;
 
         let mut f = Self::new_flock();
         f.l_type = libc::F_WRLCK as i16;
@@ -45,7 +45,7 @@ impl FileLock {
     #[cfg(unix)]
     #[allow(clippy::unnecessary_cast)]
     fn fcntl_unlock(file: &File) -> io::Result<()> {
-        use nix::fcntl::*;
+        use nix::fcntl::FcntlArg;
 
         let mut f = Self::new_flock();
         f.l_type = libc::F_UNLCK as i16;
@@ -66,7 +66,7 @@ impl FileLock {
             .map_err(|e| {
                 io::Error::new(
                     error_kind(&e),
-                    format!("Failed to open file {} for write: {}", path.display(), e),
+                    format!("Failed to open file {} for write: {e}", path.display()),
                 )
             })?;
 
@@ -74,9 +74,9 @@ impl FileLock {
         if let Err(e) = Self::fcntl_lock(&file) {
             return Err(io::Error::new(
                 error_kind(&e),
-                format!("Failed to lock file {}: {}", path.display(), e),
+                format!("Failed to lock file {}: {e}", path.display()),
             ));
-        };
+        }
 
         Ok(FileLock { file })
     }
