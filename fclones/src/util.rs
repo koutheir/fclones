@@ -75,7 +75,6 @@ pub mod test {
     use std::{fs, thread};
 
     use super::*;
-    use lazy_static::lazy_static;
 
     #[derive(Debug, PartialEq, Eq)]
     enum FsSupportsReflink {
@@ -83,10 +82,7 @@ pub mod test {
         Supported(bool),
     }
 
-    lazy_static! {
-        static ref REFLINK_SUPPORTED: Mutex<FsSupportsReflink> =
-            Mutex::new(FsSupportsReflink::Untested);
-    }
+    static REFLINK_SUPPORTED: Mutex<FsSupportsReflink> = Mutex::new(FsSupportsReflink::Untested);
 
     /// Runs test code that needs access to temporary file storage.
     /// Makes sure the test root directory exists and is empty.

@@ -342,12 +342,8 @@ pub mod test {
 
         use std::sync::{Mutex, MutexGuard};
 
-        use lazy_static::lazy_static;
-
-        lazy_static! {
-            pub static ref CROSSTEST: Mutex<bool> = Mutex::new(false);
-            pub static ref SEQUENTIAL_REFLINK_TESTS: Mutex<()> = Mutex::default();
-        }
+        pub static CROSSTEST: Mutex<bool> = Mutex::new(false);
+        pub static SEQUENTIAL_REFLINK_TESTS: Mutex<()> = Mutex::new(());
 
         pub struct CrossTest<'a>(#[allow(dead_code)] MutexGuard<'a, ()>);
         impl<'a> CrossTest<'a> {

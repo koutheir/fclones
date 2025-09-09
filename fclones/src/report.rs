@@ -5,12 +5,12 @@ use std::cmp::min;
 use std::io;
 use std::io::{BufRead, BufReader, Error, ErrorKind, Read, Write};
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 use chrono::{DateTime, FixedOffset};
 use console::style;
 use fallible_iterator::FallibleIterator;
 use itertools::Itertools;
-use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -372,10 +372,8 @@ where
     }
 
     fn read_group_header(&mut self) -> io::Result<Option<GroupHeader>> {
-        lazy_static! {
-            static ref GROUP_HEADER_RE: Regex =
-                Regex::new(r"^([a-f0-9]+), ([0-9]+) B [^*]* \* ([0-9]+):").unwrap();
-        }
+        static GROUP_HEADER_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^([a-f0-9]+), ([0-9]+) B [^*]* \* ([0-9]+):").unwrap());
 
         let Some(header_str) = self.read_first_non_comment_line()? else {
             return Ok(None);
@@ -528,20 +526,24 @@ impl<R: BufRead> TextReportReader<R> {
 
 impl<R: BufRead + Send + 'static> ReportReader for TextReportReader<R> {
     fn read_header(&mut self) -> io::Result<ReportHeader> {
-        lazy_static! {
-            static ref VERSION_RE: Regex =
-                Regex::new(r"^# Report by fclones ([0-9]+\.[0-9]+\.[0-9]+)").unwrap();
-            static ref TIMESTAMP_RE: Regex = Regex::new(r"^# Timestamp: (.*)").unwrap();
-            static ref COMMAND_RE: Regex = Regex::new(r"^# Command: (.*)").unwrap();
-            static ref BASE_DIR_RE: Regex = Regex::new(r"^# Base dir: (.*)").unwrap();
-            static ref TOTAL_RE: Regex =
-                Regex::new(r"^# Total: ([0-9]+) B \([^)]+\) in ([0-9]+) files in ([0-9]+) groups")
-                    .unwrap();
-            static ref REDUNDANT_RE: Regex =
-                Regex::new(r"^# Redundant: ([0-9]+) B \([^)]+\) in ([0-9]+) files").unwrap();
-            static ref MISSING_RE: Regex =
-                Regex::new(r"^# Missing: ([0-9]+) B \([^)]+\) in ([0-9]+) files").unwrap();
-        }
+        static VERSION_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^# Report by fclones ([0-9]+\.[0-9]+\.[0-9]+)").unwrap());
+        static TIMESTAMP_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^# Timestamp: (.*)").unwrap());
+        static COMMAND_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^# Command: (.*)").unwrap());
+        static BASE_DIR_RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^# Base dir: (.*)").unwrap());
+        static TOTAL_RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"^# Total: ([0-9]+) B \([^)]+\) in ([0-9]+) files in ([0-9]+) groups")
+                .unwrap()
+        });
+        static REDUNDANT_RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"^# Redundant: ([0-9]+) B \([^)]+\) in ([0-9]+) files").unwrap()
+        });
+        static MISSING_RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"^# Missing: ([0-9]+) B \([^)]+\) in ([0-9]+) files").unwrap()
+        });
 
         let version = self
             .read_extract(&VERSION_RE, "fclones version")?
