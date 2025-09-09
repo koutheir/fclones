@@ -9,9 +9,9 @@ categories   = ["filesystem", "command-line-utilities"]
 keywords     = ["duplicate", "dupe", "finder", "search", "cleaner"]
 license      = "MIT"
 readme       = "README.md"
-edition      = "2021"
+edition      = "2024"
 exclude      = [".circleci", "release.sh"]
-rust-version = "1.74"
+rust-version = "1.89"
 
 [dependencies]
 bincode = "2.0"
