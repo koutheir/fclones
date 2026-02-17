@@ -1,6 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::{fmt, io};
 
+use nix::libc;
+
 /// Error reported by top-level fclones functions
 #[derive(Debug)]
 pub struct Error {

@@ -13,7 +13,7 @@ use std::{fmt, fs, io};
 
 use chrono::{DateTime, FixedOffset, Local};
 use priority_queue::PriorityQueue;
-use rand::Rng;
+use rand::RngExt;
 use rand::distr::Alphanumeric;
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 

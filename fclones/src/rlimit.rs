@@ -5,6 +5,8 @@ use crate::semaphore::Semaphore;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+use nix::libc;
+
 #[cfg(unix)]
 // Get the maximum number of open file descriptors for this process, and if
 // the hard limit is larger than the soft limit increase it.

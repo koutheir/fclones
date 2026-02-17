@@ -7,6 +7,7 @@ use std::io::{Read, Seek};
 use std::str::FromStr;
 
 use metrohash::MetroHash128;
+use nix::libc;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "sha2")]
 use sha2::{Sha256, Sha512};

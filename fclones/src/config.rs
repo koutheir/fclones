@@ -12,7 +12,7 @@ use std::sync::Arc;
 use chrono::{DateTime, FixedOffset, Local};
 use clap::builder::{TypedValueParser, ValueParserFactory};
 
-use clap::{Arg, Error, command};
+use clap::{Arg, Error};
 
 use crate::file::FileLen;
 use crate::group::FileGroupFilter;
@@ -787,7 +787,6 @@ mod test {
 
     use assert_matches::assert_matches;
     use clap::Parser;
-    use std::path::PathBuf;
 
     #[test]
     fn test_group_command() {
@@ -821,7 +820,7 @@ mod test {
         let config: Config = Config::try_parse_from(vec!["fclones", "move", "target"]).unwrap();
         assert_matches!(
             config.command,
-            Command::Move { target, .. } if target == PathBuf::from("target"));
+            Command::Move { target, .. } if target.as_os_str() == "target");
     }
 
     #[test]

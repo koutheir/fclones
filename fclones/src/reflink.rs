@@ -3,6 +3,7 @@ use std::fs::Metadata;
 use std::io;
 
 use filetime::FileTime;
+use nix::libc;
 
 use crate::dedupe::{FsCommand, PathAndMetadata};
 use crate::log::{Log, LogExt};

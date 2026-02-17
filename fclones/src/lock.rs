@@ -2,6 +2,8 @@ use crate::error::error_kind;
 use std::fs::File;
 use std::{fs, io};
 
+use nix::libc;
+
 use crate::path::Path;
 
 /// Portable file locking.

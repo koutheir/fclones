@@ -1,7 +1,7 @@
 //#![warn(clippy::all, clippy::pedantic)]
 
 use clap::Parser;
-use rand::{Rng, RngCore};
+use rand::{Rng, RngExt};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
